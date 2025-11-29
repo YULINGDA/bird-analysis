@@ -30,17 +30,16 @@ with st.sidebar:
     st.error("🟥 **가뭄 (Dry)** : 수분 부족")
 
 # -----------------------------------------------------------------------------
-# 3. 분석 데이터 (DB) - 여기가 핵심입니다!
+# 3. 분석 데이터 (DB)
 # -----------------------------------------------------------------------------
 def get_bird_report(bird_code, month):
-    # 기본값 설정
     report = {
-        "sensitivity": "데이터 없음",
-        "correlation": "분석 불가",
-        "summary": "해당 시기의 분석 데이터가 존재하지 않습니다."
+        "sensitivity": "분석 중",
+        "correlation": "판단 보류",
+        "summary": "해당 시기의 특이 사항이 관측되지 않았습니다."
     }
 
-    # 1. 괭이갈매기 (bird1)
+    # 1. 괭이갈매기
     if bird_code == "bird1":
         if month in ["12", "01"]:
             report = {"sensitivity": "낮음", "correlation": "약한 양의 상관", 
@@ -51,11 +50,8 @@ def get_bird_report(bird_code, month):
         elif month == "10":
             report = {"sensitivity": "중간", "correlation": "특이 패턴", 
                       "summary": "2022, 2024년 10월에 높은 밀도를 보임."}
-        else:
-            report = {"sensitivity": "낮음", "correlation": "관측 중", 
-                      "summary": "특이한 분포 변화가 관측되지 않은 평년 수준의 시기입니다."}
 
-    # 2. 흰뺨검둥오리 (bird2)
+    # 2. 흰뺨검둥오리
     elif bird_code == "bird2":
         if month in ["01", "02"]:
             report = {"sensitivity": "낮음 (내성종)", "correlation": "무상관", 
@@ -66,11 +62,8 @@ def get_bird_report(bird_code, month):
         elif month in ["11", "12"]:
             report = {"sensitivity": "낮음", "correlation": "추세 의존", 
                       "summary": "기후보다는 연도별 개체수 자체의 자연 증가 추세가 뚜렷함."}
-        else:
-            report = {"sensitivity": "낮음", "correlation": "관측 중", 
-                      "summary": "특이한 분포 변화가 관측되지 않은 평년 수준의 시기입니다."}
 
-    # 3. 쇠백로 (bird3)
+    # 3. 쇠백로
     elif bird_code == "bird3":
         if month == "01":
             report = {"sensitivity": "매우 높음", "correlation": "강한 양의 상관", 
@@ -81,27 +74,15 @@ def get_bird_report(bird_code, month):
         elif month in ["11", "12"]:
             report = {"sensitivity": "높음", "correlation": "양의 상관", 
                       "summary": "동계 진입 시 습윤한 환경을 선호하는 경향이 뚜렷함."}
-        elif month in ["03", "10"]:
-            report = {"sensitivity": "중간", "correlation": "불규칙", 
-                      "summary": "SPEI 패턴을 따르지 않고 분포가 불규칙하게 변화함."}
-        else:
-            report = {"sensitivity": "낮음", "correlation": "관측 중", 
-                      "summary": "특이한 분포 변화가 관측되지 않은 평년 수준의 시기입니다."}
 
-    # 4. 쇠물닭 (bird4)
+    # 4. 쇠물닭
     elif bird_code == "bird4":
         if month == "01":
             report = {"sensitivity": "중간", "correlation": "양의 상관", 
                       "summary": "SPEI와 양의 상관성을 보이나, 2021년 기점의 개체수 증가폭이 더 큼."}
-        elif month in ["02", "03"]:
-            report = {"sensitivity": "낮음", "correlation": "무상관", 
-                      "summary": "SPEI 변화와 관계없이 개체수 및 분포 변화가 거의 없음."}
         elif month in ["10", "11", "12"]:
             report = {"sensitivity": "판단 불가", "correlation": "데이터 희소", 
                       "summary": "여름 철새 특성상 동계 데이터가 부족하여 상관성 판단 불가."}
-        else:
-            report = {"sensitivity": "낮음", "correlation": "관측 중", 
-                      "summary": "특이한 분포 변화가 관측되지 않은 평년 수준의 시기입니다."}
 
     return report
 
@@ -133,12 +114,11 @@ def get_dual_video_html(path1, path2):
         return None
 
 # -----------------------------------------------------------------------------
-# 5. 화면 렌더링 함수
+# 5. 화면 렌더링 함수 (글자 잘림 해결!)
 # -----------------------------------------------------------------------------
 def show_individual_tab(bird_code, bird_name):
     st.subheader(f"📅 {bird_name} - 월별 분석")
     
-    # 여기서 선택된 월(sel_month)이 get_bird_report 함수로 들어갑니다.
     sel_month = st.radio(f"{bird_name} 월 선택", ["01", "02", "03", "10", "11", "12"], key=bird_code, horizontal=True)
     
     col1, col2 = st.columns([1.5, 1])
@@ -148,20 +128,22 @@ def show_individual_tab(bird_code, bird_name):
         if os.path.exists(file_path):
             st.video(file_path)
         else:
-            st.info(f"⚠️ 영상 파일 없음: {file_path}")
+            st.warning(f"⚠️ 영상 파일이 없습니다.")
             
     with col2:
-        # [중요] 여기서 분석 리포트를 불러옵니다!
         rep = get_bird_report(bird_code, sel_month)
         
-        # 1. 지표 (큰 글씨)
+        # [수정됨] metric 대신 info/success 박스를 사용하여 줄바꿈 지원
         m1, m2 = st.columns(2)
-        m1.metric("기후 민감도", rep['sensitivity'])
-        m2.metric("상관 유형", rep['correlation'])
+        with m1:
+            st.markdown("**🌡️ 기후 민감도**")
+            st.info(f"{rep['sensitivity']}") # 파란 박스 (자동 줄바꿈)
+        with m2:
+            st.markdown("**📈 상관 유형**")
+            st.success(f"{rep['correlation']}") # 초록 박스 (자동 줄바꿈)
         
-        # 2. 설명 박스
-        st.success(f"💡 **{sel_month}월 분석 요약**")
-        st.write(rep['summary'])
+        # 상세 설명 박스
+        st.warning(f"💡 **{sel_month}월 분석 요약**\n\n{rep['summary']}")
 
 def show_comparison_tab():
     st.subheader("⚔️ 종별 교차 비교 (Cross-Analysis)")
@@ -180,28 +162,24 @@ def show_comparison_tab():
     st.divider()
     
     if btn:
-        l_code = b_map[l_name]
-        r_code = b_map[r_name]
-        f1 = f"{l_code}_{month}.mp4"
-        f2 = f"{r_code}_{month}.mp4"
+        f1 = f"{b_map[l_name]}_{month}.mp4"
+        f2 = f"{b_map[r_name]}_{month}.mp4"
         
         if os.path.exists(f1) and os.path.exists(f2):
             html = get_dual_video_html(f1, f2)
             if html:
                 st.markdown(html, unsafe_allow_html=True)
                 
-                # 하단 분석 텍스트도 연동
-                r1 = get_bird_report(l_code, month)
-                r2 = get_bird_report(r_code, month)
+                r1 = get_bird_report(b_map[l_name], month)
+                r2 = get_bird_report(b_map[r_name], month)
                 
+                # 하단 설명도 박스로 변경하여 가독성 향상
                 t1, t2 = st.columns(2)
                 with t1: 
-                    st.info(f"**🅰️ {l_name} ({month}월)**")
-                    st.write(f"- **민감도:** {r1['sensitivity']}")
+                    st.info(f"**🅰️ {l_name}**\n\n- **민감도:** {r1['sensitivity']}\n- **유형:** {r1['correlation']}")
                     st.caption(r1['summary'])
                 with t2: 
-                    st.info(f"**🅱️ {r_name} ({month}월)**")
-                    st.write(f"- **민감도:** {r2['sensitivity']}")
+                    st.success(f"**🅱️ {r_name}**\n\n- **민감도:** {r2['sensitivity']}\n- **유형:** {r2['correlation']}")
                     st.caption(r2['summary'])
             else:
                 st.error("영상 변환 중 오류 발생")
