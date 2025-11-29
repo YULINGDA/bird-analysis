@@ -15,7 +15,7 @@ st.set_page_config(
 # 2. 제목 및 사이드바
 # -----------------------------------------------------------------------------
 st.title("🦅 기후 변화(SPEI)와 조류 서식지 분포 상관관계 분석")
-st.markdown("이 대시보드는 **2014~2024년** 데이터를 기반으로 **기후 가뭄 지수(SPEI)**와 **철새 서식지 분포**의 시공간적 상관성을 분석합니다.")
+st.markdown("이 대시보드는 2014~2024년 데이터를 기반으로 기후 가뭄 지수(SPEI)와 철새 서식지 분포의 시공간적 상관성을 분석합니다.")
 st.divider()
 
 with st.sidebar:
@@ -196,3 +196,4 @@ with tabs[1]: show_individual_tab("bird2", "흰뺨검둥오리")
 with tabs[2]: show_individual_tab("bird3", "쇠백로")
 with tabs[3]: show_individual_tab("bird4", "쇠물닭")
 with tabs[4]: show_comparison_tab()
+
