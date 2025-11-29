@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import base64
 
-# 1. 페이지 기본 설정
+# 1. 페이지 기본 설정 (반드시 맨 윗줄)
 st.set_page_config(
     page_title="조류 분포 & SPEI 상관관계 분석",
     layout="wide",
@@ -33,80 +33,102 @@ with st.sidebar:
     st.write("※ **0 (흰색)** : 정상 기후 범위")
 
 # =========================================================
-# 4. 분석 결과 텍스트 반환 함수
+# 4. 분석 결과 텍스트 반환 함수 (들여쓰기 수정 완료)
 # =========================================================
-
 def get_analysis_text(bird_code, month):
+    # 1. 괭이갈매기
     if bird_code == "bird1":
-        if month in ["12", "01"]: return "**[동계]** SPEI가 높을수록(습윤) 분포 증가 경향."
-        elif month == "10": return "**[추계]** 22, 24년 높은 밀도 기록."
-        elif month == "03": return "**[특이점]** 23년 3월 이상 급증."
-        return "특이 사항 없음."
+        if month in ["12", "01"]:
+            return "**[동계]** 대체로 SPEI가 높은(습윤) 12월과 1월에서 가장 많은 개체수 분포를 보입니다."
+        elif month == "10":
+            return "**[추계]** 2022년과 2024년의 10월에 특히 많은 분포를 보였습니다."
+        elif month == "03":
+            return "**[특이점]** 23년 3월 이상 급증. 이를 통해 SPEI와의 선형적 상관관계는 낮다고 판단됩니다."
+        return "특이 사항 없음 (평년 수준 분포)"
+
+    # 2. 흰뺨검둥오리
     elif bird_code == "bird2":
-        if month in ["01", "02"]: return "**[동계]** SPEI 무관하게 고밀도 유지 (강한 내성)."
-        elif month == "03": return "**[춘계]** 건조할수록 분포 증가 역상관."
-        elif month in ["11", "12"]: return "**[추세]** 연도별 개체수 자체 증가 뚜렷."
-        return "특이 사항 없음."
+        if month in ["01", "02"]:
+            return "**[동계]** SPEI와 상관없이 전국적으로 많은 수가 분포하며, 연도가 지나도 큰 변화가 없습니다."
+        elif month == "03":
+            return "**[춘계]** 1, 2월에 비해 개체수가 적으며, 건조할수록 분포가 많아지는 경향이 일부 관측됩니다."
+        elif month == "10":
+            return "**[추계]** 대체적으로 SPEI 수치와 상관없이 고르게 분포합니다."
+        elif month in ["11", "12"]:
+            return "**[추세]** 가장 많은 개체수를 보이며, 연도가 지남에 따라 SPEI와 관계없이 증가하는 추세입니다."
+        return "특이 사항 없음"
+
+    # 3. 쇠백로
     elif bird_code == "bird3":
-        if month == "01": return "**[핵심]** SPEI와 가장 뚜렷한 양의 상관관계."
-        elif month == "02": return "**[특이점]** 건조해졌으나 분포 증가하는 역설적 패턴."
-        elif month in ["11", "12"]: return "**[동계]** 습윤할수록 분포 증가."
-        return "특이 사항 없음."
+        if month == "01":
+            return "**[핵심]** 22년 제외 SPEI가 높을수록(습윤) 개체수가 많음. 4종 중 변화가 가장 선명합니다."
+        elif month == "02":
+            return "**[특이점]** 21년부터 건조해졌으나 오히려 개체수 분포가 더 많이 측정되는 패턴을 보입니다."
+        elif month in ["03", "10"]:
+            return "**[이동기]** SPEI 패턴을 따르지 않고 분포가 불규칙하게 변화합니다."
+        elif month in ["11", "12"]:
+            return "**[동계 진입]** SPEI가 높을 때(습윤) 분포가 더 많은 경향을 보입니다."
+        return "특이 사항 없음"
+
+    # 4. 쇠물닭
     elif bird_code == "bird4":
-        if month == "01": return "**[핵심]** SPEI 양의 상관. 21년 기점 증가."
-        elif month in ["10", "11", "12"]: return "**[한계]** 여름 철새라 데이터 희소."
-        return "개체수 변화 미미함."
-    return "데이터 없음"
+        if month == "01":
+            return "**[핵심]** SPEI와 양의 상관관계. 2021년을 기점으로 개체수가 뚜렷하게 증가했습니다."
+        elif month in ["02", "03"]:
+            return "**[초봄]** SPEI 변화와 관계없이 개체수 및 분포 변화가 거의 없습니다."
+        elif month in ["10", "11", "12"]:
+            return "**[한계]** 여름 철새 특성상 해당 시기에는 개체수가 거의 측정되지 않았습니다."
+        return "특이 사항 없음"
+    
+    return "분석 데이터 없음"
 
 # =========================================================
-# 5. [핵심기술] 동시 재생을 위한 HTML 생성 함수
+# 5. 동시 재생 HTML 생성 함수 (에러 방지 처리됨)
 # =========================================================
-def get_video_html(file_path, width="100%"):
-    """
-    영상 파일을 HTML 코드로 변환하여 강제 자동 재생(Autoplay) 시키는 함수
-    """
+def get_video_html(file_path):
     try:
         with open(file_path, "rb") as f:
             video_bytes = f.read()
         b64 = base64.b64encode(video_bytes).decode()
-        # autoplay: 자동재생, loop: 반복, muted: 음소거 (음소거 안 하면 브라우저가 자동재생 막음)
+        # 자동재생(autoplay), 반복(loop), 음소거(muted) 필수
         return f'''
-        <video width="{width}" autoplay loop muted playsinline>
+        <video width="100%" autoplay loop muted playsinline>
             <source src="data:video/mp4;base64,{b64}" type="video/mp4">
         </video>
         '''
-    except:
+    except Exception as e:
         return None
 
 # =========================================================
 # 6. 개별 보기 함수
 # =========================================================
-
 def show_bird_analysis(bird_code, bird_name):
     st.markdown(f"### 📅 {bird_name} - 월별 변화")
     selected_month = st.radio(
-        f"{bird_name} 월 선택:", ["01", "02", "03", "10", "11", "12"], 
-        key=bird_code, horizontal=True
+        f"{bird_name} 월 선택:", 
+        ["01", "02", "03", "10", "11", "12"], 
+        key=bird_code, 
+        horizontal=True
     )
+    
     col1, col2 = st.columns([1.8, 1])
     video_file = f"{bird_code}_{selected_month}.mp4"
     
     with col1:
         if os.path.exists(video_file):
-            # 개별 보기는 그냥 일반 플레이어 사용
             st.video(video_file)
         else:
-            st.info("⚠️ 영상 파일 없음")
+            st.info("⚠️ 영상 파일이 없습니다.")
     with col2:
+        st.success(f"📊 {selected_month}월 상세 분석")
         st.info(get_analysis_text(bird_code, selected_month))
 
 # =========================================================
-# 7. 비교 분석 화면 (동시 재생 기능 적용)
+# 7. 비교 분석 화면 (동시 재생 버튼 포함)
 # =========================================================
-
 def show_comparison():
     st.markdown("### ⚔️ 종별 교차 비교 (Cross-Analysis)")
-    st.caption("아래 버튼을 누르면 두 종의 영상이 **동시에 재생**됩니다.")
+    st.caption("비교할 두 종을 선택하고 **[▶️ 동시 재생]** 버튼을 누르세요.")
     
     bird_map = {
         "괭이갈매기": "bird1",
@@ -115,7 +137,6 @@ def show_comparison():
         "쇠물닭": "bird4"
     }
     
-    # 컨트롤 패널
     c1, c2, c3, c4 = st.columns([1, 1, 1.5, 1])
     with c1:
         left_name = st.selectbox("비교군 A (좌)", list(bird_map.keys()), index=2)
@@ -123,54 +144,48 @@ def show_comparison():
         right_name = st.selectbox("비교군 B (우)", list(bird_map.keys()), index=1)
     with c3:
         comp_month = st.select_slider("비교할 월(Month)", options=["01", "02", "03", "10", "11", "12"])
-    
     with c4:
         st.write("") 
         play_btn = st.button("▶️ 동시 재생 Start", type="primary")
 
     st.divider()
 
-    # 파일 경로 확인
     left_code = bird_map[left_name]
     right_code = bird_map[right_name]
     file_left = f"{left_code}_{comp_month}.mp4"
     file_right = f"{right_code}_{comp_month}.mp4"
 
-    # 화면 분할
     col_l, col_r = st.columns(2)
 
-    # 버튼 눌렀을 때만 작동
     if play_btn:
         if os.path.exists(file_left) and os.path.exists(file_right):
-            # 좌측 영상 HTML 생성
             html_left = get_video_html(file_left)
-            # 우측 영상 HTML 생성
             html_right = get_video_html(file_right)
 
             with col_l:
                 st.success(f"🅰️ {left_name}")
                 if html_left:
-                    st.markdown(html_left, unsafe_allow_html=True) # HTML 강제 실행
-                    st.caption(get_analysis_text(left_code, comp_month))
+                    st.markdown(html_left, unsafe_allow_html=True)
+                else:
+                    st.error("영상 변환 실패")
+                st.caption(get_analysis_text(left_code, comp_month))
             
             with col_r:
                 st.warning(f"🅱️ {right_name}")
                 if html_right:
-                    st.markdown(html_right, unsafe_allow_html=True) # HTML 강제 실행
-                    st.caption(get_analysis_text(right_code, comp_month))
+                    st.markdown(html_right, unsafe_allow_html=True)
+                else:
+                    st.error("영상 변환 실패")
+                st.caption(get_analysis_text(right_code, comp_month))
         else:
-            st.error("❌ 선택한 월의 영상 파일이 없습니다.")
+            st.error("❌ 선택한 월의 영상 파일이 서버에 없습니다.")
     else:
-        # 대기 화면
-        with col_l:
-            st.info("👈 비교군 A를 선택하세요.")
-        with col_r:
-            st.info("👉 비교군 B를 선택하세요.")
+        with col_l: st.info("👈 비교군 A 선택")
+        with col_r: st.info("👉 비교군 B 선택")
 
 # =========================================================
 # 8. 메인 탭 실행
 # =========================================================
-
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "1. 괭이갈매기", "2. 흰뺨검둥오리", "3. 쇠백로", "4. 쇠물닭", "⚔️ 비교 분석"
 ])
