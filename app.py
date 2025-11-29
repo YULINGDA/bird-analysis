@@ -81,12 +81,12 @@ def show_bird_analysis(bird_code, bird_name):
         st.info(get_analysis_text(bird_code, selected_month))
 
 # =========================================================
-# 6. [안정화 버전] 비교 분석 화면 (에러 방지)
+# 6. [안정화 버전] 비교 분석 화면 (에러 원인 제거됨!)
 # =========================================================
 
 def show_comparison():
     st.markdown("### ⚔️ 종별 교차 비교 (Cross-Analysis)")
-    st.caption("비교할 두 종을 선택하고 **[▶️ 동시 재생]** 버튼을 누르세요.")
+    st.markdown("두 종의 분포 변화를 나란히 비교하여 **기후 민감도 차이**를 확인합니다.")
     
     bird_map = {
         "괭이갈매기": "bird1",
@@ -96,7 +96,7 @@ def show_comparison():
     }
     
     # 컨트롤 패널
-    c1, c2, c3, c4 = st.columns([1, 1, 1.5, 1])
+    c1, c2, c3 = st.columns([1, 1, 2])
     with c1:
         left_name = st.selectbox("비교군 A (좌)", list(bird_map.keys()), index=2)
     with c2:
@@ -104,11 +104,6 @@ def show_comparison():
     with c3:
         comp_month = st.select_slider("비교할 월(Month)", options=["01", "02", "03", "10", "11", "12"])
     
-    # 동시 재생 버튼
-    with c4:
-        st.write("") 
-        play_btn = st.button("▶️ 동시 재생", type="primary")
-
     # 파일 경로
     left_code = bird_map[left_name]
     right_code = bird_map[right_name]
@@ -118,14 +113,11 @@ def show_comparison():
     # 화면 분할
     col_l, col_r = st.columns(2)
     
-    # 버튼을 누르면 autoplay=True로 설정하여 자동 재생
-    auto_play_state = True if play_btn else False
-
+    # [수정] autoplay, loop 옵션을 제거하여 구버전 호환성 확보
     with col_l:
         st.success(f"🅰️ {left_name}")
         if os.path.exists(file_left):
-            # autoplay 옵션 사용 (무거운 base64 변환 제거)
-            st.video(file_left, autoplay=auto_play_state, loop=True, muted=True)
+            st.video(file_left) # 옵션 제거됨 (안전함)
             st.caption(get_analysis_text(left_code, comp_month))
         else:
             st.warning("영상 파일이 없습니다.")
@@ -133,8 +125,7 @@ def show_comparison():
     with col_r:
         st.warning(f"🅱️ {right_name}")
         if os.path.exists(file_right):
-            # autoplay 옵션 사용
-            st.video(file_right, autoplay=auto_play_state, loop=True, muted=True)
+            st.video(file_right) # 옵션 제거됨 (안전함)
             st.caption(get_analysis_text(right_code, comp_month))
         else:
             st.warning("영상 파일이 없습니다.")
