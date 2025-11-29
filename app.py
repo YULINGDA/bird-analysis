@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import base64
 
-# 1. 페이지 기본 설정 (반드시 맨 윗줄)
+# 1. 페이지 기본 설정
 st.set_page_config(
     page_title="조류 분포 & SPEI 상관관계 분석",
     layout="wide",
@@ -33,7 +33,7 @@ with st.sidebar:
     st.write("※ **0 (흰색)** : 정상 기후 범위")
 
 # =========================================================
-# 4. 분석 결과 텍스트 반환 함수 (들여쓰기 수정 완료)
+# 4. 분석 결과 텍스트 (사용자 데이터 완벽 반영)
 # =========================================================
 def get_analysis_text(bird_code, month):
     # 1. 괭이갈매기
@@ -43,8 +43,8 @@ def get_analysis_text(bird_code, month):
         elif month == "10":
             return "**[추계]** 2022년과 2024년의 10월에 특히 많은 분포를 보였습니다."
         elif month == "03":
-            return "**[특이점]** 23년 3월 이상 급증. 이를 통해 SPEI와의 선형적 상관관계는 낮다고 판단됩니다."
-        return "특이 사항 없음 (평년 수준 분포)"
+            return "**[특이점]** 23년 3월 이상 급증. SPEI와의 선형적 상관관계는 낮다고 판단됩니다."
+        return "특이 사항 없음"
 
     # 2. 흰뺨검둥오리
     elif bird_code == "bird2":
@@ -83,21 +83,40 @@ def get_analysis_text(bird_code, month):
     return "분석 데이터 없음"
 
 # =========================================================
-# 5. 동시 재생 HTML 생성 함수 (에러 방지 처리됨)
+# 5. [핵심] 동시 재생을 위한 HTML 코드 생성기
 # =========================================================
-def get_video_html(file_path):
+def render_dual_video(file1, file2, title1, title2):
+    """
+    두 영상을 하나의 HTML 블록으로 만들어 동시에 재생시킴
+    """
     try:
-        with open(file_path, "rb") as f:
-            video_bytes = f.read()
-        b64 = base64.b64encode(video_bytes).decode()
-        # 자동재생(autoplay), 반복(loop), 음소거(muted) 필수
-        return f'''
-        <video width="100%" autoplay loop muted playsinline>
-            <source src="data:video/mp4;base64,{b64}" type="video/mp4">
-        </video>
-        '''
+        # 파일 읽어서 base64 변환
+        with open(file1, "rb") as f1:
+            b64_1 = base64.b64encode(f1.read()).decode()
+        with open(file2, "rb") as f2:
+            b64_2 = base64.b64encode(f2.read()).decode()
+            
+        # HTML 코드 (Flexbox 사용)
+        html = f"""
+        <div style="display: flex; justify-content: space-between; gap: 20px;">
+            <div style="width: 48%;">
+                <h4 style="text-align: center; margin: 0px;">🅰️ {title1}</h4>
+                <video width="100%" autoplay loop muted playsinline style="border: 2px solid #ddd; border-radius: 5px;">
+                    <source src="data:video/mp4;base64,{b64_1}" type="video/mp4">
+                </video>
+            </div>
+            <div style="width: 48%;">
+                <h4 style="text-align: center; margin: 0px;">🅱️ {title2}</h4>
+                <video width="100%" autoplay loop muted playsinline style="border: 2px solid #ddd; border-radius: 5px;">
+                    <source src="data:video/mp4;base64,{b64_2}" type="video/mp4">
+                </video>
+            </div>
+        </div>
+        """
+        st.markdown(html, unsafe_allow_html=True)
+        return True
     except Exception as e:
-        return None
+        return False
 
 # =========================================================
 # 6. 개별 보기 함수
@@ -116,7 +135,7 @@ def show_bird_analysis(bird_code, bird_name):
     
     with col1:
         if os.path.exists(video_file):
-            st.video(video_file)
+            st.video(video_file) # 개별 보기는 일반 플레이어
         else:
             st.info("⚠️ 영상 파일이 없습니다.")
     with col2:
@@ -128,7 +147,7 @@ def show_bird_analysis(bird_code, bird_name):
 # =========================================================
 def show_comparison():
     st.markdown("### ⚔️ 종별 교차 비교 (Cross-Analysis)")
-    st.caption("비교할 두 종을 선택하고 **[▶️ 동시 재생]** 버튼을 누르세요.")
+    st.caption("두 종을 선택하고 **[▶️ 동시 재생]** 버튼을 누르면 영상이 함께 시작됩니다.")
     
     bird_map = {
         "괭이갈매기": "bird1",
@@ -139,9 +158,9 @@ def show_comparison():
     
     c1, c2, c3, c4 = st.columns([1, 1, 1.5, 1])
     with c1:
-        left_name = st.selectbox("비교군 A (좌)", list(bird_map.keys()), index=2)
+        left_name = st.selectbox("비교군 A (좌측)", list(bird_map.keys()), index=2)
     with c2:
-        right_name = st.selectbox("비교군 B (우)", list(bird_map.keys()), index=1)
+        right_name = st.selectbox("비교군 B (우측)", list(bird_map.keys()), index=1)
     with c3:
         comp_month = st.select_slider("비교할 월(Month)", options=["01", "02", "03", "10", "11", "12"])
     with c4:
@@ -155,33 +174,25 @@ def show_comparison():
     file_left = f"{left_code}_{comp_month}.mp4"
     file_right = f"{right_code}_{comp_month}.mp4"
 
-    col_l, col_r = st.columns(2)
-
     if play_btn:
         if os.path.exists(file_left) and os.path.exists(file_right):
-            html_left = get_video_html(file_left)
-            html_right = get_video_html(file_right)
-
-            with col_l:
-                st.success(f"🅰️ {left_name}")
-                if html_left:
-                    st.markdown(html_left, unsafe_allow_html=True)
-                else:
-                    st.error("영상 변환 실패")
-                st.caption(get_analysis_text(left_code, comp_month))
+            # 1. 동시 영상 재생 (HTML 방식)
+            success = render_dual_video(file_left, file_right, left_name, right_name)
             
-            with col_r:
-                st.warning(f"🅱️ {right_name}")
-                if html_right:
-                    st.markdown(html_right, unsafe_allow_html=True)
-                else:
-                    st.error("영상 변환 실패")
-                st.caption(get_analysis_text(right_code, comp_month))
+            if success:
+                st.write("") # 여백
+                # 2. 하단 설명 텍스트
+                t1, t2 = st.columns(2)
+                with t1:
+                    st.caption(get_analysis_text(left_code, comp_month))
+                with t2:
+                    st.caption(get_analysis_text(right_code, comp_month))
+            else:
+                st.error("영상 로딩 중 오류가 발생했습니다.")
         else:
             st.error("❌ 선택한 월의 영상 파일이 서버에 없습니다.")
     else:
-        with col_l: st.info("👈 비교군 A 선택")
-        with col_r: st.info("👉 비교군 B 선택")
+        st.info("👆 위 옵션을 선택하고 버튼을 눌러주세요.")
 
 # =========================================================
 # 8. 메인 탭 실행
